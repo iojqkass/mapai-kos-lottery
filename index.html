@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>马牌KOS · 门店抖音争霸抽奖</title>
+<style>
+  :root{
+    --red:#FE2C55; --red-d:#D81E43; --gold:#FFD900; --gold2:#FFE566;
+    --bg:#0B0B0F; --card:#17171D; --card2:#1F1F26; --line:rgba(254,44,85,.25);
+    --text:#FFFFFF; --muted:#9A9AA3; --err:#FF6B6B;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    display:flex; justify-content:center; min-height:100vh; min-height:100dvh; overflow-x:hidden;
+    background-image:radial-gradient(ellipse 90% 45% at 50% 0%, rgba(254,44,85,.14), transparent 65%),
+                     radial-gradient(ellipse 60% 30% at 50% 100%, rgba(255,217,0,.05), transparent 70%);
+  }
+  #fx{position:fixed; inset:0; pointer-events:none; z-index:1}
+  .phone{width:100%; max-width:480px; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; position:relative; z-index:2; padding:0 0 84px}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:14px 16px 10px}
+  .brand{display:flex; align-items:center; gap:8px; font-weight:800; font-size:17px; letter-spacing:.5px}
+  .brand .note{color:var(--red); font-size:20px; animation:swing 2.4s ease-in-out infinite; transform-origin:50% 0%}
+  @keyframes swing{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+  .sound{background:var(--card); border:1px solid rgba(255,255,255,.1); color:var(--muted); font-size:12px; border-radius:999px; padding:6px 12px; cursor:pointer}
+  .hero{padding:6px 20px 18px; text-align:center}
+  .hero h1{font-size:26px; font-weight:900; letter-spacing:1px; line-height:1.3}
+  .hero h1 em{color:var(--red); font-style:normal; text-shadow:0 0 24px rgba(254,44,85,.5)}
+  .hero .pname{margin-top:8px; font-size:13px; color:var(--gold); letter-spacing:.5px}
+  .tags{display:flex; gap:8px; justify-content:center; margin-top:10px; flex-wrap:wrap}
+  .tag{font-size:12px; color:var(--gold); background:rgba(255,217,0,.08); border:1px solid rgba(255,217,0,.22); border-radius:999px; padding:3px 12px}
+
+  /* ---------- 表单 ---------- */
+  .form-box{width:min(84vw,340px); display:flex; flex-direction:column; gap:14px}
+  .field{display:flex; flex-direction:column; gap:7px}
+  .field label{font-size:13px; color:var(--muted); letter-spacing:.5px}
+  .field label b{color:var(--red); font-weight:400; margin-left:2px}
+  .field input{
+    background:var(--card2); border:1.5px solid rgba(255,255,255,.12); border-radius:12px; color:var(--text);
+    font-size:16px; padding:13px 14px; outline:none; transition:border-color .15s; width:100%; font-family:inherit;
+  }
+  .field input:focus{border-color:var(--red)}
+  .field input::placeholder{color:#5a5a64}
+  .form-err{font-size:12.5px; color:var(--err); min-height:16px; text-align:center}
+  .form-tip{font-size:11.5px; color:#6a6a74; text-align:center; line-height:1.6}
+
+  /* ---------- 舞台 ---------- */
+  .stage{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 20px}
+  .gift{
+    width:min(72vw,268px); aspect-ratio:1/1.06; border-radius:26px; position:relative; cursor:pointer; user-select:none;
+    background:linear-gradient(160deg,#22121A 0%,#17171D 60%);
+    border:1.5px solid rgba(254,44,85,.45);
+    box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 18px 50px -12px rgba(254,44,85,.35), inset 0 1px 0 rgba(255,255,255,.06);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    transition:transform .15s;
+  }
+  .gift:active{transform:scale(.96)}
+  .gift .emoji{font-size:76px; filter:drop-shadow(0 8px 22px rgba(254,44,85,.45)); animation:float 2.6s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  .gift .hint{font-size:13px; color:var(--muted)}
+  .gift .award-line{font-size:22px; font-weight:900; color:var(--gold); min-height:30px; text-shadow:0 0 18px rgba(255,217,0,.4)}
+  .gift.rolling{animation:shake .18s infinite}
+  @keyframes shake{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(-3px,1px) rotate(-.6deg)}50%{transform:translate(3px,-1px) rotate(.6deg)}75%{transform:translate(-2px,2px) rotate(-.3deg)}100%{transform:translate(0,0)}}
+  .gift .ribbon{position:absolute; top:12px; left:50%; transform:translateX(-50%); font-size:11px; letter-spacing:2px; color:var(--gold); background:rgba(255,217,0,.1); border:1px solid rgba(255,217,0,.3); padding:3px 12px; border-radius:999px}
+
+  .draw-btn{
+    margin-top:26px; width:min(84vw,340px); padding:17px 0; border:none; border-radius:999px; cursor:pointer;
+    background:linear-gradient(135deg,var(--red),var(--red-d)); color:#fff; font-size:19px; font-weight:900; letter-spacing:6px;
+    box-shadow:0 10px 34px -6px rgba(254,44,85,.6), inset 0 1px 0 rgba(255,255,255,.25);
+    transition:transform .15s, filter .15s;
+  }
+  .draw-btn:active{transform:scale(.96)}
+  .draw-btn:disabled{filter:grayscale(.7) brightness(.6); cursor:not-allowed}
+  .draw-btn.stop{background:linear-gradient(135deg,#ff5c5c,#d63b3b)}
+  .progress{margin-top:16px; font-size:12.5px; color:var(--muted)}
+  .progress b{color:var(--gold)}
+
+  /* ---------- 结果页 ---------- */
+  .result{display:none; flex-direction:column; align-items:center; padding:10px 20px; animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{opacity:0; transform:scale(.85)}to{opacity:1; transform:scale(1)}}
+  .result .congrats{font-size:26px; font-weight:900; letter-spacing:2px}
+  .result .congrats em{color:var(--red); font-style:normal}
+  .badge{
+    margin-top:20px; width:min(84vw,320px); border-radius:22px; padding:26px 22px 22px; text-align:center; position:relative;
+    background:linear-gradient(165deg,#2A1420,#191920 70%);
+    border:1.5px solid rgba(255,217,0,.5);
+    box-shadow:0 0 0 1px rgba(0,0,0,.5), 0 22px 54px -14px rgba(255,217,0,.28), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .badge .level{
+    display:inline-block; font-size:15px; font-weight:900; letter-spacing:3px; color:#1A1205;
+    background:linear-gradient(135deg,var(--gold),#F5B800); border-radius:999px; padding:6px 22px;
+    box-shadow:0 6px 18px -4px rgba(255,217,0,.55);
+  }
+  .badge .prize{font-size:23px; font-weight:900; line-height:1.45; margin-top:18px; word-break:normal; overflow-wrap:anywhere}
+  .badge .meta{margin-top:16px; font-size:12px; color:var(--muted); line-height:2}
+  .badge .meta b{color:#cfcfd6; font-weight:600}
+  .badge .shine{position:absolute; inset:0; border-radius:22px; overflow:hidden; pointer-events:none}
+  .badge .shine::after{content:""; position:absolute; top:-60%; left:-30%; width:40%; height:220%; transform:rotate(25deg);
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent); animation:shine 2.8s ease-in-out infinite}
+  @keyframes shine{0%{left:-40%}60%,100%{left:130%}}
+  .result .tip{margin-top:18px; font-size:13px; color:var(--gold); letter-spacing:.5px}
+  .result .sub{margin-top:6px; font-size:12px; color:var(--muted)}
+  .like{margin-top:20px; display:flex; align-items:center; gap:7px; background:var(--card); border:1px solid rgba(254,44,85,.35);
+        border-radius:999px; padding:9px 20px; cursor:pointer; color:var(--text); font-size:14px; font-weight:700; transition:transform .12s}
+  .like:active{transform:scale(.92)}
+  .like .heart{color:var(--red); font-size:17px}
+  .like.liked .heart{animation:beat .5s}
+  @keyframes beat{0%,100%{transform:scale(1)}40%{transform:scale(1.5)}}
+
+  /* ---------- 播报跑马灯 ---------- */
+  .ticker{position:fixed; left:0; right:0; bottom:0; z-index:3; background:rgba(13,13,17,.92); backdrop-filter:blur(8px);
+          border-top:1px solid rgba(255,255,255,.07); padding:10px 0; overflow:hidden}
+  .ticker-inner{display:flex; align-items:center; gap:10px; white-space:nowrap; animation:tick 22s linear infinite; will-change:transform}
+  @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .ticker .item{font-size:12.5px; color:#cfcfd6; display:inline-flex; align-items:center; gap:6px}
+  .ticker .item b{color:var(--gold)}
+  .ticker .dot{color:var(--red)}
+
+  /* ---------- 其他屏 ---------- */
+  .screen-msg{display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 28px; gap:14px; flex:1}
+  .screen-msg .big{font-size:52px}
+  .screen-msg .t1{font-size:18px; font-weight:800}
+  .screen-msg .t2{font-size:13px; color:var(--muted); line-height:1.7}
+  .screen-msg button{margin-top:8px; background:var(--card); color:var(--text); border:1px solid var(--line); border-radius:999px; padding:11px 30px; font-size:14px; cursor:pointer}
+  .loading{display:flex; flex-direction:column; align-items:center; gap:16px; flex:1; justify-content:center}
+  .spinner{width:38px; height:38px; border-radius:50%; border:3px solid rgba(254,44,85,.2); border-top-color:var(--red); animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading .t{font-size:13px; color:var(--muted)}
+  .hide{display:none !important}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="phone">
+  <div class="topbar">
+    <div class="brand"><span class="note">♪</span>马牌KOS · 门店抖音争霸</div>
+    <button class="sound" id="soundBtn">🔊 音效开</button>
+  </div>
+
+  <!-- 加载中 -->
+  <div class="loading" id="scLoading">
+    <div class="spinner"></div>
+    <div class="t">正在连接抽奖现场…</div>
+  </div>
+
+  <!-- 无效/错误 -->
+  <div class="screen-msg" id="scError">
+    <div class="big" id="errEmoji">😵</div>
+    <div class="t1" id="errTitle">链接有问题</div>
+    <div class="t2" id="errDesc">请稍后再试，或联系活动负责人</div>
+    <button id="errRetry">重试一下</button>
+  </div>
+
+  <!-- 项目模式：信息表单 -->
+  <div id="scForm" class="hide" style="flex:1;display:none;flex-direction:column;align-items:center">
+    <div class="hero">
+      <h1>填写信息 · <em>参与抽奖</em></h1>
+      <div class="pname" id="projName"></div>
+      <div class="tags"><span class="tag">#人生好路马牌起步</span><span class="tag">#关键时刻有马牌</span></div>
+    </div>
+    <div class="stage" style="justify-content:flex-start; padding-top:6px">
+      <div class="form-box">
+        <div class="field">
+          <label>抖音号<b>*</b></label>
+          <input id="inDouyin" type="text" maxlength="40" placeholder="请输入你的抖音号" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>手机号<b>*</b></label>
+          <input id="inPhone" type="tel" maxlength="11" placeholder="请输入11位手机号" autocomplete="off">
+        </div>
+        <div class="form-err" id="formErr"></div>
+        <button class="draw-btn" id="submitBtn" style="letter-spacing:3px; margin-top:2px">提交并抽奖</button>
+        <div class="form-tip">每个手机号 / 抖音号 / 设备仅可参与一次<br>信息仅用于本次活动发奖核对</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+  </div>
+
+  <!-- 抽奖舞台（token 老模式） -->
+  <div id="scStage" class="hide" style="flex:1;display:none;flex-direction:column">
+    <div class="hero">
+      <h1>10位门店伙伴 · <em>100%中奖</em></h1>
+      <div class="tags"><span class="tag">#人生好路马牌起步</span><span class="tag">#关键时刻有马牌</span></div>
+    </div>
+    <div class="stage">
+      <div class="gift" id="giftCard">
+        <div class="ribbon">MYSTERY PRIZE</div>
+        <div class="emoji">🎁</div>
+        <div class="award-line" id="awardLine">神秘大奖</div>
+        <div class="hint" id="giftHint">点击下方按钮开启</div>
+      </div>
+      <button class="draw-btn" id="drawBtn">立即抽奖</button>
+      <div class="progress" id="progressOld"></div>
+    </div>
+  </div>
+
+  <!-- 中奖结果 -->
+  <div class="result" id="scResult">
+    <div class="congrats" id="congrats">🎉 恭喜中奖！</div>
+    <div class="badge">
+      <div class="shine"></div>
+      <div class="level" id="rLevel">一等奖</div>
+      <div class="prize" id="rPrize">奖品名称</div>
+      <div class="meta" id="rMeta"></div>
+    </div>
+    <div class="tip">📸 截图保存本页面，凭截图找负责人领奖</div>
+    <div class="sub" id="rSub">奖品将在活动结束后统一安排发放</div>
+    <button class="like" id="likeBtn"><span class="heart">❤️</span><span id="likeCount">点赞</span></button>
+  </div>
+</div>
+
+<div class="ticker" id="ticker"><div class="ticker-inner" id="tickerInner"></div></div>
+
+<script src="./sdk.global.js"></script>
+<script src="./config.js"></script>
+<script>
+(function(){
+  'use strict';
+  /* ================= 配置 ================= */
+  var ENDPOINT = 'https://ma-pai-lottery.app.workbuddy.host';
+  var PUBKEY = 'wbpk_XeSOXtX3CuJ1LtsHIT5qYp_OpuQDlWsmlckDXrhHOsJ6729hg5oO7ne';
+  var LEVELS = ['特等奖','一等奖','二等奖','三等奖','四等奖'];
+  var LEVEL_COLORS = {'特等奖':'#FFD900','一等奖':'#FE2C55','二等奖':'#FE2C55','三等奖':'#F5A623','四等奖':'#F5A623'};
+
+  var params = new URLSearchParams(location.search);
+  var token = (params.get('t') || '').replace(/[^A-Za-z0-9]/g,'').slice(0,16);
+  var projId = params.get('p') ? parseInt(params.get('p'), 10) : null;
+  var MOCK = params.get('mock') === '1';   // 仅本地视觉自检
+  var cloud = null, state = 'boot';        // boot|form|ready|rolling|result|error
+  var mode = token ? 'token' : 'project';  // token=老一对一模式 / project=新模式
+  var likes = 0, liked = false;
+
+  /* ================= 工具 ================= */
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+  function show(which){
+    $('scLoading').classList.add('hide');
+    $('scError').style.display='none';
+    $('scForm').classList.add('hide'); $('scForm').style.display='none';
+    $('scStage').classList.add('hide'); $('scStage').style.display='none';
+    $('scResult').style.display='none';
+    if(which==='loading'){ $('scLoading').classList.remove('hide'); }
+    else if(which==='error'){ $('scError').style.display='flex'; }
+    else if(which==='form'){ $('scForm').classList.remove('hide'); $('scForm').style.display='flex'; }
+    else if(which==='stage'){ $('scStage').classList.remove('hide'); $('scStage').style.display='flex'; }
+    else if(which==='result'){ $('scResult').style.display='flex'; }
+  }
+  function showError(emoji,title,desc,retry){
+    $('errEmoji').textContent=emoji; $('errTitle').textContent=title; $('errDesc').textContent=desc||'';
+    $('errRetry').style.display = retry ? '' : 'none';
+    show('error');
+  }
+  function maskPhone(p){ return p && p.length===11 ? p.slice(0,3)+'****'+p.slice(7) : p; }
+  function getFp(){
+    try{
+      var fp = localStorage.getItem('ma_pai_fp');
+      if(fp) return fp;
+      var c = document.createElement('canvas'), ctx = c.getContext('2d');
+      ctx.textBaseline='top'; ctx.font='14px Arial'; ctx.fillStyle='#f60';
+      ctx.fillRect(0,0,60,20); ctx.fillStyle='#069'; ctx.fillText('ma-pai-lottery',2,2);
+      var raw=[navigator.userAgent, navigator.language, screen.width+'x'+screen.height, new Date().getTimezoneOffset(), c.toDataURL()].join('|');
+      var h=0; for(var i=0;i<raw.length;i++){ h=((h<<5)-h+raw.charCodeAt(i))|0; }
+      fp='fp'+Math.abs(h).toString(36)+Math.random().toString(36).slice(2,8);
+      localStorage.setItem('ma_pai_fp', fp);
+      return fp;
+    }catch(e){ return ''; }
+  }
+
+  /* ================= 音效 ================= */
+  var Snd = { on:true, ctx:null,
+    ac:function(){ if(!this.ctx) this.ctx=new (window.AudioContext||window.webkitAudioContext)(); return this.ctx; },
+    tick:function(){ if(!this.on) return; try{
+      var c=this.ac(), o=c.createOscillator(), g=c.createGain();
+      o.type='square'; o.frequency.value=840;
+      g.gain.setValueAtTime(.03,c.currentTime); g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.04);
+      o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.04);
+    }catch(e){} },
+    fanfare:function(){ if(!this.on) return; try{
+      var c=this.ac(); [523,659,784,1046,1318].forEach(function(f,i){
+        var o=c.createOscillator(), g=c.createGain(), t=c.currentTime+i*.1;
+        o.type='triangle'; o.frequency.value=f;
+        g.gain.setValueAtTime(.09,t); g.gain.exponentialRampToValueAtTime(.0001,t+.35);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.35);
+      });
+    }catch(e){} }
+  };
+
+  /* ================= 撒花 & 爱心 ================= */
+  var fx=$('fx'), fctx=fx.getContext('2d'), parts=[], fxRaf=null;
+  function sizeFx(){ fx.width=innerWidth; fx.height=innerHeight; }
+  sizeFx(); addEventListener('resize', sizeFx);
+  function burst(n, fromTop){
+    var colors=['#FE2C55','#FFD900','#FFFFFF','#FFE566'];
+    for(var i=0;i<(n||140);i++) parts.push({
+      x:innerWidth/2+(Math.random()-.5)*innerWidth*.6, y: fromTop? innerHeight*.9 : innerHeight*.34,
+      vx:(Math.random()-.5)*13, vy: fromTop? -(6+Math.random()*8) : -(Math.random()*13+3),
+      w:5+Math.random()*7, h:8+Math.random()*8, c:colors[(Math.random()*colors.length)|0],
+      r:Math.random()*Math.PI, vr:(Math.random()-.5)*.35, life:100+Math.random()*60
+    });
+    if(!fxRaf) fxRaf=requestAnimationFrame(fxLoop);
+  }
+  function fxLoop(){
+    fxRaf=requestAnimationFrame(fxLoop);
+    fctx.clearRect(0,0,fx.width,fx.height);
+    parts=parts.filter(function(p){
+      p.x+=p.vx; p.y+=p.vy; p.vy+=.34; p.vx*=.99; p.r+=p.vr; p.life--;
+      fctx.save(); fctx.translate(p.x,p.y); fctx.rotate(p.r);
+      fctx.globalAlpha=Math.max(0,p.life/80);
+      fctx.fillStyle=p.c; fctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      fctx.restore();
+      return p.life>0 && p.y<fx.height+50;
+    });
+    if(!parts.length){ cancelAnimationFrame(fxRaf); fxRaf=null; fctx.clearRect(0,0,fx.width,fx.height); }
+  }
+  function heartFly(){
+    var h=document.createElement('div');
+    h.textContent='❤️'; h.style.cssText='position:fixed;z-index:70;font-size:22px;pointer-events:none;transition:all 1s ease-out;opacity:1';
+    var r=$('likeBtn').getBoundingClientRect();
+    h.style.left=(r.left+r.width/2-11)+'px'; h.style.top=r.top+'px';
+    document.body.appendChild(h);
+    requestAnimationFrame(function(){ h.style.transform='translateY(-90px) scale(1.6)'; h.style.opacity='0'; });
+    setTimeout(function(){ h.remove(); }, 1050);
+  }
+
+  /* ================= 数据 ================= */
+  function initCloud(){
+    var PROXY = window.LOTTERY_API || '';
+    if(PROXY){
+      // GitHub Pages 模式：经国内中转服务器调用云数据库（绕过 Origin 白名单）
+      cloud = { database: { rpc: function(name, args){
+        return fetch(PROXY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fn: name, args: args || {} })
+        }).then(function(r){ return r.json(); }).then(function(j){
+          if(j && j.ok === false) return { error: j.error || j.error_description || 'error' };
+          return { data: j };
+        })
+      }}};
+    } else {
+      cloud = WorkBuddyCloud.createWorkBuddyCloud({ endpoint: ENDPOINT, publishableKey: PUBKEY });
+    }
+  }
+  function rpc(name, args){
+    return cloud.database.rpc(name, args || {}).then(function(res){
+      if(res && res.error) throw res.error;
+      return res ? res.data : null;
+    });
+  }
+  function errText(e){
+    var m=(e&&(e.message||e.error||e.error_description||e.msg))||'';
+    if(/invalid_token/i.test(m)) return '这个抽奖链接无效，请联系活动负责人';
+    if(/sold_out/i.test(m)) return '奖品已被抽完啦';
+    if(/invalid_project/i.test(m)) return '活动不存在或已结束';
+    if(/bad_phone/i.test(m)) return '手机号格式不正确';
+    if(/bad_douyin/i.test(m)) return '请填写抖音号';
+    if(/douyin_used/i.test(m)) return '该抖音号已参与过抽奖';
+    if(/device_used/i.test(m)) return '本设备已参与过抽奖，请勿重复参与';
+    if(/paused/i.test(m)) return '活动已暂停，请联系活动负责人';
+    return '网络不太稳定，请再试一次';
+  }
+
+  /* ---------- 播报 ---------- */
+  function agoText(sec){
+    sec = Number(sec)||0;
+    if(sec<60) return '刚刚';
+    if(sec<3600) return Math.floor(sec/60)+'分钟前';
+    return Math.floor(sec/3600)+'小时前';
+  }
+  function loadFeed(){
+    var p;
+    if(MOCK){ renderTicker([{level:'一等奖',secs_ago:12},{level:'四等奖',secs_ago:45},{level:'二等奖',secs_ago:130}]); return; }
+    if(mode==='token') p = rpc('lottery_feed');
+    else p = rpc('project_feed', { p_project_id: projId });
+    p.then(function(list){ if(list && list.length) renderTicker(list); }).catch(function(){});
+  }
+  function renderTicker(list){
+    var one = list.map(function(r){
+      return '<span class="item"><span class="dot">●</span>'+agoText(r.secs_ago)+' 有门店伙伴抽中了 <b>'+esc(r.level)+'</b></span>';
+    }).join('<span class="item" style="margin:0 18px">·</span>');
+    $('tickerInner').innerHTML = one + one;
+    $('ticker').classList.remove('hide');
+  }
+
+  /* ---------- 结果页 ---------- */
+  function renderResult(res){
+    state='result';
+    var level = res.level || '幸运奖', prize = res.prize || '神秘奖品';
+    if(mode==='project' && res.phone){
+      try{ localStorage.setItem('ma_pai_lottery_last', JSON.stringify({ p: projId, phone: res.phone })); }catch(e){}
+    }
+    $('rLevel').textContent = level;
+    $('rLevel').style.background = 'linear-gradient(135deg,'+(LEVEL_COLORS[level]||'#FFD900')+',#F5A623)';
+    $('rPrize').textContent = prize;
+    var meta = [];
+    if(res.douyin) meta.push('抖音号 <b>'+esc(res.douyin)+'</b>');
+    if(res.phone) meta.push('手机号 <b>'+esc(maskPhone(res.phone))+'</b>');
+    if(token) meta.push('抽奖编号 <b>'+esc(token)+'</b>');
+    $('rMeta').innerHTML = meta.join('<br>');
+    $('congrats').innerHTML = res.already ? '您已参与过 ☺' : '🎉 恭喜中奖！';
+    $('rSub').textContent = res.already ? '下方是您之前的抽奖结果' : '奖品将在活动结束后统一安排发放';
+    show('result');
+    burst(150); Snd.fanfare();
+    setTimeout(function(){ burst(80, true); }, 500);
+    loadFeed();
+  }
+
+  /* ================= 项目模式 ================= */
+  function bootProject(){
+    show('loading');
+    function showFormBox(info){
+      $('projName').textContent = '🎯 ' + info.name;
+      $('progress').innerHTML = '已有 <b>'+(info.drawn||0)+'</b> / '+(info.total||0)+' 位伙伴中奖';
+      show('form'); state='form';
+    }
+    var ready = function(pid){
+      projId = pid;
+      return rpc('project_info', { p_project_id: pid }).then(function(info){
+        if(!info || !info.exists){ showError('🚫','活动不存在','该抽奖活动尚未创建或已结束，请联系负责人'); return null; }
+        // 本地有本项目的参与记录 → 刷新后直达结果页（不再回表单）
+        var last = null;
+        try{ last = JSON.parse(localStorage.getItem('ma_pai_lottery_last')||'null'); }catch(e){}
+        if(last && last.p === pid && last.phone){
+          return rpc('check_participant', { p_project_id: pid, p_phone: last.phone }).then(function(r){
+            if(r && r.exists && r.level){
+              renderResult({ already:true, level:r.level, prize:r.prize, douyin:r.douyin, phone:last.phone });
+            }else{
+              showFormBox(info);
+            }
+          }).catch(function(){ showFormBox(info); });
+        }
+        showFormBox(info);
+        return info;
+      });
+    };
+    if(MOCK){
+      $('projName').textContent='🎯 本地测试项目';
+      $('progress').innerHTML='已有 <b>2</b> / 10 位伙伴中奖';
+      show('form'); state='form'; loadFeed(); return;
+    }
+    try{ initCloud(); }catch(e){ showError('💥','加载失败','抽奖组件加载异常，请关闭页面重试'); return; }
+    Promise.resolve()
+      .then(function(){ return projId ? projId : rpc('project_latest').then(function(l){ return l && l.id; }); })
+      .then(ready)
+      .catch(function(){ showError('📡','连接失败','现场网络不稳定，请点击重试',true); });
+  }
+  function submitForm(){
+    if(state!=='form') return;
+    var douyin = $('inDouyin').value.trim();
+    var phone = $('inPhone').value.trim();
+    $('formErr').textContent='';
+    if(!douyin){ $('formErr').textContent='请填写抖音号'; return; }
+    if(douyin.length>40){ $('formErr').textContent='抖音号太长啦'; return; }
+    if(!/^1[3-9][0-9]{9}$/.test(phone)){ $('formErr').textContent='请填写正确的11位手机号'; return; }
+    state='rolling';
+    var btn=$('submitBtn'); btn.disabled=true; btn.textContent='开奖中…';
+    if(Snd.ctx && Snd.ctx.state==='suspended') Snd.ctx.resume();
+
+    if(MOCK){
+      setTimeout(function(){
+        renderResult({ already:false, level:'一等奖', prize:'马牌大疆手机云台Osmo Mobile 8', douyin:douyin, phone:phone });
+      }, 2200);
+      return;
+    }
+    rpc('draw_lottery_v2', { p_project_id: projId, p_phone: phone, p_douyin: douyin, p_fp: getFp() })
+      .then(function(res){
+        if(res && res.ok){ setTimeout(function(){ renderResult(res); }, 300); }
+        else if(res && res.error==='sold_out'){ showError('🏆','奖品已抽完','本期奖品已被全部抽走，请联系负责人关注下期活动'); }
+        else { throw res; }
+      })
+      .catch(function(e){
+        state='form'; btn.disabled=false; btn.textContent='提交并抽奖';
+        $('formErr').textContent = errText(e);
+      });
+  }
+
+  /* ================= token 老模式 ================= */
+  function bootToken(){
+    show('loading');
+    if(MOCK){ show('stage'); state='ready'; $('progressOld').innerHTML='已有 <b>3</b> / 10 位门店伙伴中奖'; loadFeed(); return; }
+    try{ initCloud(); }catch(e){ showError('💥','加载失败','抽奖组件加载异常，请关闭页面重试'); return; }
+    Promise.resolve()
+      .then(function(){ return rpc('lottery_check', { p_token: token }); })
+      .then(function(res){
+        if(res && res.exists === false){ showError('🚫','链接无效','这个抽奖链接未在活动名单中，请联系负责人确认'); return; }
+        if(res && res.used){ renderResult({ already:true, level:res.level, prize:res.prize, douyin:null, phone:null }); return; }
+        show('stage'); state='ready';
+        rpc('lottery_stats').then(function(s){
+          $('progressOld').innerHTML='已有 <b>'+(s.drawn||0)+'</b> / '+(s.total||10)+' 位门店伙伴中奖';
+        }).catch(function(){});
+        loadFeed();
+      })
+      .catch(function(e){
+        var m=(e&&(e.message||e.msg))||'';
+        if(/invalid_token/i.test(m)){ showError('🚫','链接无效','这个抽奖链接未在活动名单中，请联系负责人确认'); return; }
+        showError('📡','连接失败','现场网络不稳定，请点击重试',true);
+      });
+  }
+  function doDraw(){
+    if(state!=='ready') return;
+    state='rolling';
+    var btn=$('drawBtn'); btn.disabled=true; btn.textContent='停 ！'; btn.classList.add('stop');
+    var card=$('giftCard'); card.classList.add('rolling');
+    $('giftHint').textContent='好运降临中…';
+    if(Snd.ctx && Snd.ctx.state==='suspended') Snd.ctx.resume();
+    var rollTimer=setInterval(function(){ $('awardLine').textContent = LEVELS[(Math.random()*LEVELS.length)|0]; Snd.tick(); }, 90);
+    var finish=function(res){ clearInterval(rollTimer); card.classList.remove('rolling'); setTimeout(function(){ renderResult(res); }, 350); };
+    var fail=function(e){ clearInterval(rollTimer); card.classList.remove('rolling'); state='ready';
+      btn.disabled=false; btn.textContent='立即抽奖'; $('awardLine').textContent='神秘大奖';
+      showError('😅','没抽成',errText(e),true); };
+    rpc('draw_lottery', { p_token: token }).then(finish).catch(fail);
+  }
+
+  /* ================= 启动 & 事件 ================= */
+  function boot(){
+    if(!token && !projId && !MOCK){
+      // 无参数：尝试进入最新项目
+      show('loading');
+      try{ initCloud(); }catch(e){ showError('💥','加载失败','抽奖组件加载异常，请关闭页面重试'); return; }
+      rpc('project_latest').then(function(l){
+        if(l && l.id){ location.replace(location.pathname + '?p=' + l.id); }
+        else showError('🔗','活动未开始','暂无进行中的抽奖活动，请联系负责人');
+      }).catch(function(){ showError('📡','连接失败','现场网络不稳定，请点击重试',true); });
+      return;
+    }
+    if(mode==='token') bootToken(); else bootProject();
+  }
+
+  $('submitBtn').addEventListener('click', submitForm);
+  $('drawBtn').addEventListener('click', doDraw);
+  $('giftCard').addEventListener('click', doDraw);
+  $('errRetry').addEventListener('click', function(){ location.reload(); });
+  $('soundBtn').addEventListener('click', function(){ Snd.on=!Snd.on; this.textContent = Snd.on ? '🔊 音效开' : '🔇 音效关'; });
+  $('likeBtn').addEventListener('click', function(){
+    if(liked){ heartFly(); return; }
+    liked=true; likes++; this.classList.add('liked');
+    $('likeCount').textContent = likes + ' 赞';
+    heartFly(); setTimeout(heartFly,150); setTimeout(heartFly,300);
+  });
+  ['inDouyin','inPhone'].forEach(function(id){
+    $(id).addEventListener('keydown', function(e){ if(e.key==='Enter') submitForm(); });
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>

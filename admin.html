@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>抽奖活动后台 · 马牌KOS</title>
+<style>
+  :root{
+    --red:#FE2C55; --red-d:#D81E43; --gold:#FFD900;
+    --bg:#0B0B0F; --card:#17171D; --card2:#1F1F26; --line:rgba(254,44,85,.22);
+    --text:#FFFFFF; --muted:#9A9AA3; --ok:#3ECF8E; --err:#FF6B6B;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    background:var(--bg); color:var(--text); min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background-image:radial-gradient(ellipse 80% 40% at 50% 0%, rgba(254,44,85,.10), transparent 65%);
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:960px; margin:0 auto}
+  header{display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; flex-wrap:wrap; gap:12px}
+  h1{font-size:21px; font-weight:900; letter-spacing:.5px}
+  h1 em{color:var(--red); font-style:normal}
+  .key-badge{font-size:12px; color:var(--muted); background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:999px; padding:6px 14px}
+  .key-badge b{color:var(--gold)}
+  button{font-family:inherit; cursor:pointer; border:none}
+  .btn{background:linear-gradient(135deg,var(--red),var(--red-d)); color:#fff; font-size:14px; font-weight:700;
+       border-radius:10px; padding:10px 20px; transition:filter .15s}
+  .btn:hover{filter:brightness(1.1)} .btn:disabled{filter:grayscale(.6) brightness(.6); cursor:not-allowed}
+  .btn.ghost{background:var(--card); color:var(--muted); border:1px solid rgba(255,255,255,.1); font-weight:400}
+  .btn.ghost:hover{color:var(--text)}
+  .btn.small{padding:6px 12px; font-size:12px; border-radius:8px}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),#F5B800); color:#1A1205}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:18px}
+  .card h2{font-size:15px; margin-bottom:14px; display:flex; align-items:center; gap:8px}
+  .card h2 .step{width:20px; height:20px; border-radius:50%; background:var(--red); color:#fff; font-size:11px;
+                 display:inline-flex; align-items:center; justify-content:center; font-weight:800}
+
+  /* key 门 */
+  .gate{max-width:420px; margin:80px auto; text-align:center}
+  .gate .lock{font-size:46px; margin-bottom:14px}
+  .gate h1{margin-bottom:8px}
+  .gate p{font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.7}
+  .gate input{width:100%; background:var(--card2); border:1.5px solid rgba(255,255,255,.12); border-radius:12px;
+              color:var(--text); font-size:16px; padding:13px 14px; outline:none; text-align:center; letter-spacing:2px; font-family:inherit}
+  .gate input:focus{border-color:var(--red)}
+  .gate .btn{width:100%; margin-top:12px; padding:13px}
+  .gate .err{color:var(--err); font-size:13px; margin-top:10px; min-height:18px}
+
+  /* 创建表单 */
+  .name-input{width:100%; background:var(--card2); border:1.5px solid rgba(255,255,255,.12); border-radius:10px;
+              color:var(--text); font-size:15px; padding:12px 14px; outline:none; margin-bottom:14px; font-family:inherit}
+  .name-input:focus{border-color:var(--red)}
+  .lv-row{display:grid; grid-template-columns:110px 74px 1fr 34px; gap:8px; margin-bottom:8px; align-items:start}
+  .lv-row input, .lv-row textarea{
+    background:var(--card2); border:1px solid rgba(255,255,255,.1); border-radius:8px; color:var(--text);
+    font-size:13px; padding:9px 10px; outline:none; font-family:inherit; width:100%;
+  }
+  .lv-row input:focus, .lv-row textarea:focus{border-color:var(--red)}
+  .lv-row textarea{resize:vertical; min-height:38px; line-height:1.5}
+  .lv-row .del{background:transparent; color:#6a6a74; font-size:16px; padding:6px 0; border-radius:8px}
+  .lv-row .del:hover{color:var(--err)}
+  .lv-head{display:grid; grid-template-columns:110px 74px 1fr 34px; gap:8px; margin-bottom:6px;
+           font-size:11px; color:var(--muted); padding:0 2px}
+  .lv-actions{display:flex; gap:8px; margin:12px 0 16px; flex-wrap:wrap}
+  .create-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .create-msg{font-size:13px; color:var(--ok); min-height:18px}
+
+  /* 项目列表 */
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th{text-align:left; color:var(--muted); font-weight:400; font-size:12px; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.08)}
+  td{padding:11px 10px; border-bottom:1px solid rgba(255,255,255,.05); vertical-align:middle}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .pill{display:inline-block; font-size:11px; border-radius:999px; padding:2px 10px}
+  .pill.run{background:rgba(62,207,142,.12); color:var(--ok)}
+  .pill.done{background:rgba(255,217,0,.1); color:var(--gold)}
+  .pill.pause{background:rgba(154,154,163,.14); color:var(--muted)}
+  .btn.danger{background:transparent; color:var(--err); border:1px solid rgba(255,107,107,.35); font-weight:400}
+  .btn.danger:hover{background:rgba(255,107,107,.1)}
+  .ops{display:flex; gap:6px; flex-wrap:wrap}
+  .link-box{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; color:var(--gold);
+            background:var(--card2); border:1px dashed rgba(255,217,0,.3); border-radius:8px; padding:8px 10px; margin-top:8px;
+            word-break:break-all; display:none}
+  .empty{color:var(--muted); font-size:13px; text-align:center; padding:28px 0}
+  .detail{margin-top:10px; display:none}
+  .detail table{font-size:12.5px}
+  .detail th, .detail td{padding:7px 8px}
+  .toast{position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(16px); background:#22222a;
+         border:1px solid rgba(255,255,255,.14); color:var(--text); font-size:13px; padding:10px 18px; border-radius:10px;
+         opacity:0; pointer-events:none; transition:.25s; z-index:99}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  @media (max-width:720px){
+    .lv-row, .lv-head{grid-template-columns:88px 56px 1fr 30px}
+    table{font-size:12px}
+    th:nth-child(3), td:nth-child(3){display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 密钥门 -->
+  <div class="gate" id="gate">
+    <div class="lock">🔐</div>
+    <h1>抽奖活动后台</h1>
+    <p>输入管理员密钥进入<br>密钥由活动负责人提供，仅你可见</p>
+    <input id="keyInput" type="text" placeholder="管理密钥" autocomplete="off">
+    <button class="btn" id="keyBtn">进入后台</button>
+    <div class="err" id="keyErr"></div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="panel" style="display:none">
+    <header>
+      <h1>🎰 抽奖活动<em>后台</em></h1>
+      <span class="key-badge">密钥 <b id="keyMask">****</b> · <a href="#" id="logout" style="color:var(--muted)">退出</a></span>
+    </header>
+
+    <!-- 创建项目 -->
+    <div class="card">
+      <h2><span class="step">1</span>创建抽奖项目</h2>
+      <input class="name-input" id="projName" placeholder="项目名称，如：10月KOS门店抖音抽奖" maxlength="40">
+      <div class="lv-head"><span>奖项名称</span><span>名额数</span><span>奖品池（每行一个，中奖后随机匹配）</span><span></span></div>
+      <div id="lvRows"></div>
+      <div class="lv-actions">
+        <button class="btn ghost small" id="addLv">＋ 添加奖项</button>
+        <button class="btn ghost small" id="tplBtn">⚡ 填入马牌活动模板</button>
+      </div>
+      <div class="create-row">
+        <button class="btn" id="createBtn">创建项目</button>
+        <span class="create-msg" id="createMsg"></span>
+      </div>
+    </div>
+
+    <!-- 项目列表 -->
+    <div class="card">
+      <h2><span class="step">2</span>项目列表 / 分享链接 / 导出结果</h2>
+      <div id="projList"><div class="empty">加载中…</div></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="./sdk.global.js"></script>
+<script src="./config.js"></script>
+<script>
+(function(){
+  'use strict';
+  var ENDPOINT = 'https://ma-pai-lottery.app.workbuddy.host';
+  var PUBKEY = 'wbpk_XeSOXtX3CuJ1LtsHIT5qYp_OpuQDlWsmlckDXrhHOsJ6729hg5oO7ne';
+  var LS_KEY = 'ma_pai_lottery_admin_key';
+  // 分享链接前缀：优先 config.js 指定（指向微信可打开的 GitHub Pages），否则按当前地址推导
+  var LINK_BASE = window.LOTTERY_LINK_BASE || (location.origin + location.pathname.replace(/[^/]*$/, ''));
+  var cloud = null, adminKey = '';
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+  function toast(msg){
+    var t=$('toast'); t.textContent=msg; t.classList.add('show');
+    clearTimeout(t._h); t._h=setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+  function initCloud(){
+    var PROXY = window.LOTTERY_API || '';
+    if(PROXY){
+      cloud = { database: { rpc: function(name, args){
+        return fetch(PROXY, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fn: name, args: args || {} })
+        }).then(function(r){ return r.json(); }).then(function(j){
+          if(j && j.ok === false) return { error: j.error || j.error_description || 'error' };
+          return { data: j };
+        })
+      }}};
+    } else {
+      cloud = WorkBuddyCloud.createWorkBuddyCloud({ endpoint: ENDPOINT, publishableKey: PUBKEY });
+    }
+  }
+  function rpc(name, args){
+    return cloud.database.rpc(name, args || {}).then(function(res){
+      if(res && res.error) throw res.error;
+      return res ? res.data : null;
+    });
+  }
+
+  /* ---------- 马牌活动模板 ---------- */
+  var TEMPLATE = [
+    { level:'特等奖', count:1, prizes:['松赞酒店3晚（toC消费者）'] },
+    { level:'一等奖', count:2, prizes:[
+      '马牌大疆相机Action 5 Pro','马牌大疆手机云台Osmo Mobile 8','马牌大疆DJI Mic Mini迷你麦克风',
+      '马牌高端野餐桌椅套装[桌子X1/椅子X4/大号]','马牌BOSS DOUBLE B四件套','马牌天幕帐篷_米色',
+      '马牌万仟堂-万事胜意茶具','马牌定制麻将套组','轮胎切片展示板(挂墙)',
+      '马牌MOMAX蓝牙音箱[全指向扬声器/氛围灯设计/15小时续航]','马牌SC7定制款专属概念车模型'] },
+    { level:'二等奖', count:2, prizes:[
+      '马牌大疆手机云台Osmo Mobile 8','马牌大疆DJI Mic Mini迷你麦克风','马牌BOSS DOUBLE B四件套',
+      '马牌天幕帐篷_米色','马牌高端野餐桌椅套装[桌子X1/椅子X4/大号]','马牌外交官炉煮茶烧烧烤炉两件套',
+      '马牌外交官云感高背月亮躺椅','马牌COSTA云逸套装','轮胎切片展示板(挂墙)','马牌定制皂液机'] },
+    { level:'三等奖', count:2, prizes:[
+      '马牌大疆手机云台Osmo Mobile 8','马牌大疆DJI Mic Mini','马牌BOSS DOUBLE B四件套',
+      '轮胎切片展示板(挂墙)','马牌天幕帐篷_米色','马牌外交官炉煮茶烧烧烤炉两件套',
+      '马牌外交官云感高背月亮躺椅','马牌COSTA云逸套装'] },
+    { level:'四等奖', count:3, prizes:[
+      '马牌大疆手机云台Osmo Mobile 8','马牌BOSS DOUBLE B四件套','马牌西屋养生壶[一体式/绿色]',
+      '轮胎切片展示板(挂墙)','马牌COSTA云逸套装'] }
+  ];
+
+  /* ---------- 奖项行动态行 ---------- */
+  function addLvRow(lv, count, prizes){
+    var row = document.createElement('div');
+    row.className = 'lv-row';
+    row.innerHTML =
+      '<input class="lv-name" type="text" placeholder="如：一等奖" maxlength="10" value="'+esc(lv||'')+'">' +
+      '<input class="lv-count" type="number" min="0" max="99" placeholder="名额" value="'+(count||1)+'">' +
+      '<textarea class="lv-prizes" placeholder="每行一个奖品">'+esc((prizes||[]).join('\n'))+'</textarea>' +
+      '<button class="del" title="删除">✕</button>';
+    row.querySelector('.del').onclick = function(){ row.remove(); };
+    $('lvRows').appendChild(row);
+  }
+  function collectLevels(){
+    var levels = [], prizes = [];
+    Array.prototype.forEach.call(document.querySelectorAll('.lv-row'), function(row){
+      var name = row.querySelector('.lv-name').value.trim();
+      var count = parseInt(row.querySelector('.lv-count').value, 10) || 0;
+      var plist = row.querySelector('.lv-prizes').value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+      if(!name || count<=0) return;
+      levels.push({ level:name, count:count });
+      plist.forEach(function(p){ prizes.push({ level:name, prize:p }); });
+    });
+    return { levels: levels, prizes: prizes };
+  }
+
+  /* ---------- 项目列表 ---------- */
+  function fmtTime(t){ return t ? new Date(t).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '-'; }
+  function loadProjects(){
+    rpc('admin_list_projects', { p_key: adminKey }).then(function(list){
+      if(!list || !list.length){ $('projList').innerHTML = '<div class="empty">还没有项目，先在上方创建一个</div>'; return; }
+      var html = '<table><tr><th>ID</th><th>项目名称</th><th>创建时间</th><th>参与/名额</th><th>状态</th><th>操作</th></tr>';
+      list.forEach(function(p){
+        var st = p.status || 'active';
+        var full = p.drawn >= p.total_slots && p.total_slots > 0;
+        var pill = st !== 'active' ? '<span class="pill pause">已暂停</span>'
+                 : full ? '<span class="pill done">已抽完</span>'
+                 : '<span class="pill run">进行中</span>';
+        html += '<tr><td>'+p.id+'</td><td style="font-weight:700">'+esc(p.name)+'</td><td>'+fmtTime(p.created_at)+'</td>' +
+                '<td>'+p.participants+' / '+p.total_slots+'</td>' +
+                '<td>'+pill+'</td>' +
+                '<td><div class="ops">' +
+                '<button class="btn ghost small" data-act="link" data-id="'+p.id+'">复制链接</button>' +
+                '<button class="btn ghost small" data-act="dup" data-id="'+p.id+'">复制抽奖</button>' +
+                '<button class="btn ghost small" data-act="pause" data-id="'+p.id+'" data-st="'+st+'">'+(st==='active'?'暂停':'开启')+'</button>' +
+                '<button class="btn ghost small" data-act="view" data-id="'+p.id+'">看结果</button>' +
+                '<button class="btn gold small" data-act="csv" data-id="'+p.id+'">导出CSV</button>' +
+                '<button class="btn danger small" data-act="del" data-id="'+p.id+'">删除</button>' +
+                '</div><div class="link-box" id="link-'+p.id+'">'+LINK_BASE+'?p='+p.id+'</div>' +
+                '<div class="detail" id="detail-'+p.id+'"></div></td></tr>';
+      });
+      html += '</table>';
+      $('projList').innerHTML = html;
+      Array.prototype.forEach.call($('projList').querySelectorAll('button[data-act]'), function(btn){
+        btn.onclick = function(){
+          var id = parseInt(btn.dataset.id, 10), act = btn.dataset.act;
+          if(act==='link'){
+            var box = $('link-'+id), url = box.textContent;
+            box.style.display = 'block';
+            copyText(url, function(){ toast('链接已复制，发给微信即可'); });
+          }else if(act==='view'){ toggleDetail(id); }
+          else if(act==='csv'){ exportCsv(id); }
+          else if(act==='dup'){ duplicateProject(id); }
+          else if(act==='pause'){ togglePause(id, btn.dataset.st); }
+          else if(act==='del'){ deleteProject(id); }
+        };
+      });
+    }).catch(function(){ $('projList').innerHTML = '<div class="empty">加载失败，请刷新重试</div>'; });
+  }
+  function duplicateProject(id){
+    if(!confirm('复制该项目？将生成一个全新的空白抽奖（奖项/奖品相同，无人参与记录）。')) return;
+    rpc('admin_duplicate_project', { p_key: adminKey, p_project_id: id }).then(function(res){
+      if(res && res.ok){ toast('已复制为新项目 ID：'+res.project_id); loadProjects(); }
+      else toast('复制失败，请重试');
+    }).catch(function(){ toast('复制失败，请重试'); });
+  }
+  function togglePause(id, st){
+    var next = st === 'active' ? 'paused' : 'active';
+    var msg = next === 'paused' ? '暂停后用户将无法参与该项目，确定暂停？' : '恢复后用户可继续参与，确定开启？';
+    if(!confirm(msg)) return;
+    rpc('admin_set_project_status', { p_key: adminKey, p_project_id: id, p_status: next }).then(function(res){
+      if(res && res.ok){ toast(next === 'paused' ? '已暂停' : '已开启'); loadProjects(); }
+      else toast('操作失败，请重试');
+    }).catch(function(){ toast('操作失败，请重试'); });
+  }
+  function deleteProject(id){
+    if(!confirm('⚠️ 删除后该项目的参与记录、中奖记录将全部清空且无法恢复！确定删除？')) return;
+    if(!confirm('再次确认：真的要删除项目 '+id+' 吗？此操作不可撤销。')) return;
+    rpc('admin_delete_project', { p_key: adminKey, p_project_id: id }).then(function(res){
+      if(res && res.ok){ toast('已删除「'+res.deleted+'」'); loadProjects(); }
+      else toast('删除失败，请重试');
+    }).catch(function(){ toast('删除失败，请重试'); });
+  }
+  function toggleDetail(id){
+    var box = $('detail-'+id);
+    if(box.style.display === 'block'){ box.style.display='none'; return; }
+    box.style.display = 'block';
+    if(box.dataset.loaded) return;
+    box.innerHTML = '<div class="empty">加载中…</div>';
+    rpc('admin_export', { p_key: adminKey, p_project_id: id }).then(function(rows){
+      box.dataset.loaded = '1';
+      if(!rows || !rows.length){ box.innerHTML = '<div class="empty">暂无人参与</div>'; return; }
+      var html = '<table><tr><th>手机号</th><th>抖音号</th><th>奖项</th><th>奖品</th><th>时间</th></tr>';
+      rows.forEach(function(r){
+        html += '<tr><td>'+esc(r.phone)+'</td><td>'+esc(r.douyin)+'</td><td style="color:var(--gold)">'+esc(r.level||'-')+'</td><td>'+esc(r.prize||'-')+'</td><td>'+fmtTime(r.created_at)+'</td></tr>';
+      });
+      box.innerHTML = html + '</table>';
+    }).catch(function(){ box.innerHTML = '<div class="empty">加载失败</div>'; });
+  }
+  function exportCsv(id){
+    rpc('admin_export', { p_key: adminKey, p_project_id: id }).then(function(rows){
+      if(!rows || !rows.length){ toast('还没有参与数据'); return; }
+      var head = ['手机号','抖音号','奖项','奖品','参与时间'];
+      var lines = [head.join(',')];
+      rows.forEach(function(r){
+        lines.push([r.phone, r.douyin, r.level||'', r.prize||'', r.created_at ? new Date(r.created_at).toLocaleString('zh-CN') : '']
+          .map(csvCell).join(','));
+      });
+      var blob = new Blob(['\ufeff' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '抽奖结果_项目'+id+'.csv';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      toast('已导出 '+rows.length+' 条参与记录');
+    }).catch(function(){ toast('导出失败，请重试'); });
+  }
+  function csvCell(v){
+    v = v==null ? '' : String(v);
+    return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+  }
+  function copyText(text, cb){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(cb, function(){ fallback(); });
+    } else fallback();
+    function fallback(){
+      var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); cb(); }catch(e){ toast('复制失败，请手动复制'); }
+      ta.remove();
+    }
+  }
+
+  /* ---------- 密钥门 ---------- */
+  function enterPanel(key){
+    initCloud();
+    rpc('check_admin', { p_key: key }).then(function(res){
+      if(res === true){
+        adminKey = key;
+        try{ localStorage.setItem(LS_KEY, key); }catch(e){}
+        $('gate').style.display = 'none';
+        $('panel').style.display = 'block';
+        $('keyMask').textContent = key.slice(0,4) + '****' + key.slice(-4);
+        loadProjects();
+      }else{
+        $('keyErr').textContent = '密钥不正确，请检查后重试';
+      }
+    }).catch(function(){ $('keyErr').textContent = '网络异常，请重试'; });
+  }
+  $('keyBtn').onclick = function(){
+    var v = $('keyInput').value.trim();
+    if(!v){ $('keyErr').textContent='请输入密钥'; return; }
+    $('keyErr').textContent = '验证中…';
+    enterPanel(v);
+  };
+  $('keyInput').addEventListener('keydown', function(e){ if(e.key==='Enter') $('keyBtn').click(); });
+  $('logout').onclick = function(e){
+    e.preventDefault();
+    try{ localStorage.removeItem(LS_KEY); }catch(err){}
+    location.reload();
+  };
+
+  /* ---------- 创建项目 ---------- */
+  $('addLv').onclick = function(){ addLvRow('', 1, []); };
+  $('tplBtn').onclick = function(){
+    $('lvRows').innerHTML = '';
+    TEMPLATE.forEach(function(t){ addLvRow(t.level, t.count, t.prizes); });
+    toast('已填入马牌活动模板，可自行修改');
+  };
+  $('createBtn').onclick = function(){
+    var name = $('projName').value.trim();
+    if(!name){ $('createMsg').style.color='var(--err)'; $('createMsg').textContent='请填写项目名称'; return; }
+    var data = collectLevels();
+    if(!data.levels.length){ $('createMsg').style.color='var(--err)'; $('createMsg').textContent='至少配置一个奖项（名称+名额）'; return; }
+    var noPrize = data.levels.filter(function(l){
+      return !data.prizes.some(function(p){ return p.level === l.level; });
+    });
+    if(noPrize.length){ $('createMsg').style.color='var(--err)'; $('createMsg').textContent='奖项「'+noPrize[0].level+'」还没有填奖品池'; return; }
+    $('createBtn').disabled = true; $('createMsg').style.color='var(--muted)'; $('createMsg').textContent='创建中…';
+    rpc('admin_create_project', { p_key: adminKey, p_name: name, p_levels: data.levels, p_prizes: data.prizes })
+      .then(function(res){
+        $('createBtn').disabled = false;
+        if(res && res.ok){
+          $('createMsg').style.color='var(--ok)';
+          $('createMsg').textContent = '创建成功！项目 ID：'+res.project_id+'，链接已生成在下方列表中';
+          $('projName').value = '';
+          loadProjects();
+        }else{
+          $('createMsg').style.color='var(--err)';
+          $('createMsg').textContent = res && res.error==='bad_key' ? '密钥失效，请刷新重新登录' : '创建失败，请重试';
+        }
+      })
+      .catch(function(){
+        $('createBtn').disabled = false;
+        $('createMsg').style.color='var(--err)'; $('createMsg').textContent='网络异常，请重试';
+      });
+  };
+
+  /* ---------- 自动登录 ---------- */
+  try{
+    var saved = localStorage.getItem(LS_KEY);
+    if(saved){ $('keyInput').value = saved; enterPanel(saved); }
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
